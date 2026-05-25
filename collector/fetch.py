@@ -31,13 +31,18 @@ def fetch_atletas_pontuados(session, base_url: str, rodada: int) -> List[Dict[st
     return resp.json()
 
 
-# The run_collect function uses the PoC DB upsert helpers in single_run.py
-def run_collect(db_path: str, base_url: str, session):
+# The run_collect function supports writing either to local SQLite (PoC) or Supabase via SupabaseWriter
+def run_collect(db_path: str, base_url: str, session, supabase_writer=None):
+    """Run a full collect. If supabase_writer is provided (SupabaseWriter), writes are sent to Supabase.
+    Otherwise, writes go to local SQLite using single_run upsert helpers.
+    """
     # import here to avoid circular import during test discovery
     from collector.single_run import create_connection, create_tables, upsert_atleta, upsert_preco, upsert_pontuacao
 
-    conn = create_connection(db_path)
-    create_tables(conn)
+    # Prepare containers if using Supabase
+    atletas_payload = []
+    precos_payload = []
+    pontuacoes_payload = []
 
     status = fetch_mercado_status(session, base_url)
     rodada = status.get('rodada_atual')
@@ -56,13 +61,38 @@ def run_collect(db_path: str, base_url: str, session):
         if atleta_id is None:
             LOG.warning('Skipping atleta without id: %s', a)
             continue
-        upsert_atleta(conn, a)
-        preco = a.get('preco') or a.get('valor')
-        if preco is not None and rodada is not None:
-            try:
-                upsert_preco(conn, atleta_id, int(rodada), float(preco))
-            except Exception:
-                LOG.exception('Failed upsert_preco for %s', atleta_id)
+
+        if supabase_writer:
+            # map to DB contract
+            atleta_obj = {
+                'id': atleta_id,
+                'nome': a.get('nome'),
+                'apelido': a.get('apelido'),
+                'clube_id': a.get('clube_id'),
+                'posicao_id': a.get('posicao_id'),
+                'foto_url': a.get('foto_url') or a.get('foto')
+            }
+            atletas_payload.append(atleta_obj)
+            preco = a.get('preco') or a.get('valor')
+            if preco is not None and rodada is not None:
+                precos_payload.append({
+                    'atleta_id': atleta_id,
+                    'rodada': int(rodada),
+                    'preco': float(preco),
+                    'variacao': a.get('variacao')
+                })
+        else:
+            # local sqlite path
+            conn = create_connection(db_path)
+            create_tables(conn)
+            upsert_atleta(conn, a)
+            preco = a.get('preco') or a.get('valor')
+            if preco is not None and rodada is not None:
+                try:
+                    upsert_preco(conn, atleta_id, int(rodada), float(preco))
+                except Exception:
+                    LOG.exception('Failed upsert_preco for %s', atleta_id)
+            conn.close()
 
     # collect pontuados if rodada is available
     if rodada is not None:
@@ -74,10 +104,29 @@ def run_collect(db_path: str, base_url: str, session):
         for p in pont_list:
             atleta_id = p.get('atleta_id') or p.get('id')
             rodada_p = p.get('rodada') or rodada
-            try:
-                upsert_pontuacao(conn, atleta_id, int(rodada_p), float(p.get('pontuacao', 0)), bool(p.get('jogou', False)))
-            except Exception:
-                LOG.exception('Failed upsert_pontuacao for %s', atleta_id)
+            if supabase_writer:
+                pontuacoes_payload.append({
+                    'atleta_id': atleta_id,
+                    'rodada': int(rodada_p),
+                    'pontuacao': float(p.get('pontuacao', 0)),
+                    'jogou': bool(p.get('jogou', False))
+                })
+            else:
+                conn = create_connection(db_path)
+                create_tables(conn)
+                try:
+                    upsert_pontuacao(conn, atleta_id, int(rodada_p), float(p.get('pontuacao', 0)), bool(p.get('jogou', False)))
+                except Exception:
+                    LOG.exception('Failed upsert_pontuacao for %s', atleta_id)
+                conn.close()
 
-    conn.close()
+    # If using Supabase, flush payloads
+    if supabase_writer:
+        if atletas_payload:
+            supabase_writer.upsert_atletas(atletas_payload)
+        if precos_payload:
+            supabase_writer.upsert_precos(precos_payload)
+        if pontuacoes_payload:
+            supabase_writer.upsert_pontuacoes(pontuacoes_payload)
+
     LOG.info('Collect finished')
