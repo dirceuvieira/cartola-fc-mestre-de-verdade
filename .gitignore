@@ -1,10 +1,7 @@
 # ================================
 # OpenSpec
 # ================================
-OpenSpec/
-.cursor/
-.gemini/
-.github/
+# OpenSpec/
 
 # ================================
 # Python (Backend / Coletor)

@@ -1,0 +1,20 @@
+[
+  {
+    "atleta_id": 123456,
+    "rodada": 12,
+    "pontuacao": 7.5,
+    "jogou": true,
+    "scouts": {
+      "gols": 1,
+      "assistencias": 0,
+      "desarmes": 3
+    }
+  },
+  {
+    "atleta_id": 234567,
+    "rodada": 12,
+    "pontuacao": 0,
+    "jogou": false,
+    "scouts": {}
+  }
+]

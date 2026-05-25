@@ -1,0 +1,22 @@
+[
+  {
+    "atleta_id": 123456,
+    "nome": "Fulano da Silva",
+    "apelido": "Fulano",
+    "clube_id": 12,
+    "posicao_id": 3,
+    "preco": 12.50,
+    "status": "disponivel",
+    "foto_url": "https://s3.cartola/globo/atletas/123456.png"
+  },
+  {
+    "atleta_id": 234567,
+    "nome": "Beltrano Pereira",
+    "apelido": "Beltrano",
+    "clube_id": 8,
+    "posicao_id": 2,
+    "preco": 28.75,
+    "status": "duvida",
+    "foto_url": "https://s3.cartola/globo/atletas/234567.png"
+  }
+]
