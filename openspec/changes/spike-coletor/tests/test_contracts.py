@@ -3,10 +3,12 @@ import pytest
 
 # Tests are skeletons using sample files in ../samples/
 
-SAMPLES_DIR = "..\\samples\\"
+import os
+SAMPLES_DIR = os.path.join(os.path.dirname(__file__), '..', 'samples')
 
 def load_sample(name):
-    with open(SAMPLES_DIR + name, 'r', encoding='utf-8') as f:
+    path = os.path.join(SAMPLES_DIR, name)
+    with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 

@@ -25,7 +25,7 @@ Objetivo: validar o contrato da API do Cartola e prover um coletor idempotente m
 - [ ] 8. Observability mínima: logs estruturados + metric last_success_timestamp
 
 ## Tarefas operacionais
-- [ ] Criar schema DB inicial (scripts SQL em `db/schema.sql`) — seguir `projeto_inicial.md`
+- [x] Criar schema DB inicial (scripts SQL em `db/schema.sql`) — seguir `projeto_inicial.md`
 - [ ] Provisionar Supabase de teste e configurar secrets
 - [ ] Commit inicial do collector + README de execução
 
